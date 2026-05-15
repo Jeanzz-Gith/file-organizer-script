@@ -1,118 +1,105 @@
 """
-Organizador de Arquivos por Extensão
+File Organizer by Extension
 
-Este script move arquivos de uma pasta de origem ("./files") para subpastas
-criadas dinamicamente com base no tipo de arquivo (Imagens, Documentos, Vídeos,
-Música, Arquivos compactados e Outros).
+This script moves files from a source folder (default: "./files") into subfolders
+based on file type (Images, Documents, Videos, Music, Archives, Others).
 
-Como usar:
-1. Coloque este script no diretório onde está a pasta "files" (ou ajuste a variável
-   SOURCE_FOLDER abaixo).
-2. Execute o script: python organizador.py
-3. Os arquivos serão movidos para subpastas como "./files/Images", "./files/Documents", etc.
+How to use:
+1. Place this script in the directory containing the "files" folder (or change SOURCE_FOLDER).
+2. Run: python file_organizer.py
+3. Files will be moved into subfolders like "./files/Images", "./files/Documents", etc.
 
-Observações:
-- Arquivos sem extensão ou com extensão não listada vão para "Others".
-- O script não move subpastas (apenas arquivos).
-- Se a pasta de origem não existir, uma mensagem de erro é exibida.
+Notes:
+- Files without extension or with unknown extensions go to "Others".
+- Subfolders inside the source folder are ignored (only files are moved).
+- If the source folder does not exist, an error message is shown.
 """
 
 import os
 import shutil
-from pathlib import Path  # Opcional, mas recomendado para manipulação robusta de caminhos
+from pathlib import Path
 
 # ============================================================================
-# CONFIGURAÇÕES (Fácil de modificar)
+# CONFIGURATION (easy to modify)
 # ============================================================================
 
-# Pasta que será organizada (pode ser um caminho absoluto ou relativo)
-# Recomendação: usar raw string ou Path para evitar problemas com barras invertidas no Windows.
-SOURCE_FOLDER = "./files"   # Exemplo: "./minha_pasta" ou r"C:\Users\Usuario\Documentos"
+# Folder to organize (relative or absolute path)
+SOURCE_FOLDER = "./files"   # Example: "./downloads" or r"C:\Users\Name\Desktop\messy"
 
-# Dicionário que mapeia nomes de pastas de destino para listas de extensões (case insensitive)
+# Mapping: destination folder name -> list of file extensions (case-insensitive)
 FILE_TYPES = {
     "Images": [".png", ".jpg", ".jpeg", ".gif", ".bmp", ".svg"],
     "Documents": [".pdf", ".docx", ".txt", ".xlsx", ".pptx", ".odt"],
     "Videos": [".mp4", ".mkv", ".avi", ".mov", ".wmv"],
     "Music": [".mp3", ".wav", ".flac", ".aac"],
     "Archives": [".zip", ".rar", ".7z", ".tar", ".gz"]
-    # Adicione ou remova extensões conforme necessário
+    # Add or remove extensions as needed
 }
 
 # ============================================================================
-# FUNÇÃO PRINCIPAL
+# MAIN FUNCTION
 # ============================================================================
 
 def organize_files(source_folder: str) -> None:
     """
-    Organiza arquivos da pasta source_folder em subpastas baseadas na extensão.
+    Organizes files from source_folder into subfolders based on extension.
 
     Args:
-        source_folder (str): Caminho para a pasta que contém os arquivos a serem organizados.
-    
-    Returns:
-        None
+        source_folder (str): Path to the folder containing files to organize.
     """
-    # Converte para objeto Path (torna o código mais robusto em diferentes SOs)
     source_path = Path(source_folder)
 
-    # --- Verificação de existência da pasta de origem ---
+    # --- Check if source folder exists and is a directory ---
     if not source_path.exists():
-        print(f"ERRO: A pasta '{source_folder}' não foi encontrada.")
-        print("Dica: Verifique se o caminho está correto e se o script está no diretório esperado.")
+        print(f"ERROR: Folder '{source_folder}' not found.")
+        print("Tip: Verify the path and ensure the script is in the correct directory.")
         return
 
     if not source_path.is_dir():
-        print(f"ERRO: O caminho '{source_folder}' não é uma pasta/diretório.")
+        print(f"ERROR: '{source_folder}' is not a directory.")
         return
 
-    # --- Itera sobre cada item dentro da pasta de origem ---
+    # --- Iterate over each item in the source folder ---
     for item in source_path.iterdir():
-        # Pula se não for um arquivo (ex.: subpastas existentes são ignoradas)
         if not item.is_file():
-            continue
+            continue  # Skip subdirectories
 
         file_name = item.name
-        file_path = item  # já é um objeto Path
-
+        file_path = item
         moved = False
 
-        # --- Tenta encontrar uma categoria para a extensão do arquivo ---
-        # O lower() garante que .JPG seja tratado como .jpg
+        # --- Try to match the file extension with a category ---
         for folder_name, extensions in FILE_TYPES.items():
             if file_name.lower().endswith(tuple(extensions)):
-                # Cria a pasta de destino (se não existir)
                 target_folder = source_path / folder_name
-                target_folder.mkdir(exist_ok=True)  # mkdir com exist_ok=True evita erros se já existir
+                target_folder.mkdir(exist_ok=True)  # Create folder if it doesn't exist
 
-                # Move o arquivo
-                destino = target_folder / file_name
-                shutil.move(str(file_path), str(destino))
-                print(f"Movido: {file_name} -> {folder_name}/")
+                destination = target_folder / file_name
+                shutil.move(str(file_path), str(destination))
+                print(f"Moved: {file_name} -> {folder_name}/")
                 moved = True
-                break  # Sai do loop assim que a primeira categoria corresponder
+                break  # Stop searching once a match is found
 
-        # --- Se nenhuma categoria correspondeu, move para "Others" ---
+        # --- If no category matches, move to "Others" ---
         if not moved:
             others_folder = source_path / "Others"
             others_folder.mkdir(exist_ok=True)
-            destino = others_folder / file_name
-            shutil.move(str(file_path), str(destino))
-            print(f"Movido: {file_name} -> Others/")
+            destination = others_folder / file_name
+            shutil.move(str(file_path), str(destination))
+            print(f"Moved: {file_name} -> Others/")
 
 # ============================================================================
-# PONTO DE ENTRADA (execução direta)
+# ENTRY POINT
 # ============================================================================
 
 if __name__ == "__main__":
-    # Exibe um cabeçalho informativo
-    print("=== Organizador de Arquivos por Extensão ===\n")
-    print(f"Pasta de origem: {SOURCE_FOLDER}")
-    print("Categorias configuradas:")
+    print("=== File Organizer by Extension ===\n")
+    print(f"Source folder: {SOURCE_FOLDER}")
+    print("Configured categories:")
     for cat, exts in FILE_TYPES.items():
         print(f"  - {cat}: {', '.join(exts)}")
-    print("\nIniciando organização...\n")
+    print("\nStarting organization...\n")
 
     organize_files(SOURCE_FOLDER)
 
-    print("\nOrganização concluída.")
+    print("\nOrganization complete.")
